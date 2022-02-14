@@ -17,6 +17,8 @@ namespace ShopAPIFirst.Apps.AdminApi.Dtos.ProductDtos
         public Category Category { get; set; }
     }
 
+    
+
     public class ProductPostDtoValidater : AbstractValidator<ProductPostDto>
     {
         public ProductPostDtoValidater()

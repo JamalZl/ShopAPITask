@@ -1,6 +1,8 @@
 ﻿using APIFirstProject.Data.DAL;
 using APIFirstProject.Data.Entities;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ShopAPIFirst.Apps.AdminApi.Dtos;
 using ShopAPIFirst.Apps.AdminApi.Dtos.ProductDtos;
 using System.Collections.Generic;
@@ -13,32 +15,25 @@ namespace APIFirstProject.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly ShopDbContext _context;
+        private readonly IMapper _mapper;
 
-        public ProductsController(ShopDbContext context)
+        public ProductsController(ShopDbContext context,IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [Route("{id}")]
         [HttpGet]
         public IActionResult Get(int id)
         {
-            Product product = _context.Products.FirstOrDefault(p => p.Id == id && !p.IsDeleted);
+            Product product = _context.Products.Include(p=>p.Category).ThenInclude(c => c.Products).FirstOrDefault(p => p.Id == id && !p.IsDeleted);
             if (product == null)
             {
                 return NotFound();
             }
 
-            ProductGetDto productDto = new ProductGetDto
-            {
-                Id = product.Id,
-                CostPrice = product.CostPrice,
-                SalePrice = product.SalePrice,
-                Name = product.Name,
-                DisplayStatus = product.DisplayStatus,
-                CreatedAt = product.CreatedAt,
-                ModifiedAt = product.ModifiedAt
-            };
+            ProductGetDto productDto = _mapper.Map<ProductGetDto>(product);
             return StatusCode(201, productDto);
         }
 
@@ -47,7 +42,7 @@ namespace APIFirstProject.Controllers
         public IActionResult GetAll(int page=1,string search=null)
         {
 
-            var query = _context.Products.Where(p => !p.IsDeleted);
+            var query = _context.Products.Include(p=>p.Category).Where(p => !p.IsDeleted);
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query=query.Where(q => q.Name.ToLower().Contains(search.ToLower().Trim()));
@@ -55,8 +50,17 @@ namespace APIFirstProject.Controllers
             ListDto<ProductListItemDto> productListDto = new ListDto<ProductListItemDto>
             {
                 Items = query.Skip((page - 1) * 4).Take(4).Select(p => new ProductListItemDto 
-                { Name = p.Name, SalePrice = p.SalePrice, CostPrice = p.CostPrice,
-                    DisplayStatus = p.DisplayStatus }).ToList(),
+                { Name = p.Name, 
+                    SalePrice = p.SalePrice,
+                    CostPrice = p.CostPrice,
+                    DisplayStatus = p.DisplayStatus,
+                    Category=new CategoryInProductListItemDto
+                    {
+                        Id=p.CategoryId,
+                        Name=p.Category.Name
+                    }
+                
+                }).ToList(),
                 TotalCount = query.Count()
             };
             return StatusCode(201, productListDto);
@@ -85,6 +89,8 @@ namespace APIFirstProject.Controllers
             Product existProduct = _context.Products.FirstOrDefault(p => p.Id == id);
                 if(existProduct == null) return NotFound();
 
+            if (existProduct.CategoryId != productDto.CategoryId && !_context.Products.Any(p => p.Id == productDto.CategoryId && !p.IsDeleted))
+                return NotFound();
             existProduct.CostPrice = productDto.CostPrice;
             existProduct.SalePrice = productDto.SalePrice;
             existProduct.Name = productDto.Name;

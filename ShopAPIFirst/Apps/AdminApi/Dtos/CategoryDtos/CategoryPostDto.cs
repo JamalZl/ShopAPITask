@@ -27,15 +27,13 @@ namespace ShopAPIFirst.Apps.AdminApi.Dtos.CategoryDtos
                 {
                     content.AddFailure("ImageFile", "Please insert a valid image type such as jpg,png,jpeg etc");
                 }
-
-            });
-            RuleFor(x => x.Image).Custom((x, content1) =>
-            {
                 if (!x.IsSizeOkay(2))
                 {
-                    content1.AddFailure("ImageFile", "Image size can not be more than 2MB");
+                    content.AddFailure("ImageFile", "Image size can not be more than 2MB");
                 }
-            });
+
+            }).NotNull();
+            
         }
     }
 }

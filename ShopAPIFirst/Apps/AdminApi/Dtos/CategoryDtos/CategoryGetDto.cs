@@ -11,5 +11,6 @@ namespace ShopAPIFirst.Apps.AdminApi.Dtos.CategoryDtos
         public string Name { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
+        public int ProductsCount { get; set; }
     }
 }

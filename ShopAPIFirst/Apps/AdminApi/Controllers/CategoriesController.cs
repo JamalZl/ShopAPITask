@@ -1,8 +1,10 @@
 ﻿using APIFirstProject.Data.DAL;
 using APIFirstProject.Data.Entities;
+using AutoMapper;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ShopAPIFirst.Apps.AdminApi.Dtos;
 using ShopAPIFirst.Apps.AdminApi.Dtos.CategoryDtos;
 using ShopAPIFirst.Extensions;
@@ -19,27 +21,23 @@ namespace ShopAPIFirst.Controllers
     {
         private readonly ShopDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly IMapper _mapper;
 
-        public CategoriesController(ShopDbContext context, IWebHostEnvironment env)
+        public CategoriesController(ShopDbContext context, IWebHostEnvironment env,IMapper mapper)
         {
             _context = context;
             _env = env;
+            _mapper = mapper;
         }
         [Route("{id}")]
         [HttpGet]
         public IActionResult Get(int id)
         {
-            Category category = _context.Categories.FirstOrDefault(x => x.Id == id && !x.IsDeleted);
+            Category category = _context.Categories.Include(c=>c.Products).FirstOrDefault(x => x.Id == id && !x.IsDeleted);
 
             if (category == null) return NotFound();
 
-            CategoryGetDto categoryDto = new CategoryGetDto
-            {
-                Id = category.Id,
-                Name = category.Name,
-                CreatedAt = category.CreatedAt,
-                ModifiedAt = category.ModifiedAt
-            };
+            CategoryGetDto categoryDto = _mapper.Map<CategoryGetDto>(category);
 
             return Ok(categoryDto);
         }
